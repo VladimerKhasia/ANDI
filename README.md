@@ -9,7 +9,7 @@
   <strong>Implementation of the paper "ANDI: Arithmetic Normalization / Decorrelated Inertia Learning"</strong>
 </p>
 
-[![ResearchGate](https://img.shields.io/badge/ResearchGate-View_Paper-00CCBB?style=flat&logo=ResearchGate&logoColor=white)](https://www.researchgate.net/publication/398447768_ANDI_Arithmetic_Normalization_Decorrelated_Inertia?channel=doi&linkId=6936fed806a9ab54f8450cf9&showFulltext=true)
+[![ResearchGate](https://img.shields.io/badge/ResearchGate-View_Paper-00CCBB?style=flat&logo=ResearchGate&logoColor=white)](https://www.researchgate.net/publication/398447768_ANDI_Arithmetic_Normalization_Decorrelated_Inertia)
 
 <!-- [![arXiv](https://img.shields.io/badge/arXiv-????.?????-b31b1b.svg)](????????????????????????) --> 
 
