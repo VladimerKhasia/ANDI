@@ -48,7 +48,7 @@ python ANDI.py
 If you utilize this code or the concepts presented in **ANDI** for your research, please cite the following paper:
 
 ```bibtex
-@article{khasia2025andi,
+@misc{khasia2025andi,
   author       = {Khasia, Vladimer},
   title        = {ANDI: Arithmetic Normalization / Decorrelated Inertia},
   year         = {2025},
@@ -69,6 +69,7 @@ If you utilize this code or the concepts presented in **ANDI** for your research
 }
 ```
 -->
+
 
 
 
