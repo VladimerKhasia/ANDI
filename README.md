@@ -9,7 +9,9 @@
   <strong>Implementation of the paper "ANDI: Arithmetic Normalization / Decorrelated Inertia Learning"</strong>
 </p>
 
-[![arXiv](https://img.shields.io/badge/arXiv-????.?????-b31b1b.svg)](????????????????????????)
+[![ResearchGate](https://img.shields.io/badge/ResearchGate-View_Paper-00CCBB?style=flat&logo=ResearchGate&logoColor=white)](https://www.researchgate.net/publication/398447768_ANDI_Arithmetic_Normalization_Decorrelated_Inertia?channel=doi&linkId=6936fed806a9ab54f8450cf9&showFulltext=true)
+
+<!-- [![arXiv](https://img.shields.io/badge/arXiv-????.?????-b31b1b.svg)](????????????????????????) --> 
 
 ## Abstract
 
@@ -40,10 +42,24 @@ pip install -r requirements.txt
 python ANDI.py
 ```
 
+
 ## Citation
 
 If you utilize this code or the concepts presented in **ANDI** for your research, please cite the following paper:
 
+```bibtex
+@misc{khasia2025andi,
+  author       = {Khasia, Vladimer},
+  title        = {ANDI: Arithmetic Normalization / Decorrelated Inertia},
+  year         = {2025},
+  publisher    = {ResearchGate},
+  doi          = {10.13140/RG.2.2.28381.47841},
+  url          = {https://www.researchgate.net/publication/398447768_ANDI_Arithmetic_Normalization_Decorrelated_Inertia},
+  note         = {Preprint}
+}
+```
+
+<!--
 ```bibtex
 @article{khasia2025andi,
   title={ANDI: Arithmetic Normalization / Decorrelated Inertia Learning},
@@ -52,4 +68,6 @@ If you utilize this code or the concepts presented in **ANDI** for your research
   year={2025}
 }
 ```
+-->
+
 
