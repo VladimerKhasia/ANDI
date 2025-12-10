@@ -19,11 +19,11 @@ Modern neural network optimizers face a trilemma: they must balance Adaptivity (
 
 ---
 
-Paper attached as PDF file `andi.pdf`
+Paper versions are attached as PDF files `andi.pdf`, `andi_v2.pdf`
 
 ### Experiment Manifest
 
-To reproduce the results, run `ANDI.py` or for more convinience turn it into Jupyter Notebook `ANDI.ipynb`. 
+To reproduce the results, run `ANDI.py` or for more convinience turn it into Jupyter Notebook `ANDI.ipynb`. You can do the same for other versions like `ANDI_v2.py`.
 
 ---
 
