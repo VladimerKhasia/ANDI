@@ -1,5 +1,4 @@
-# ANDI - code is designed such that you can run it directly in Jupyter Notebook.
-# ANDI
+# ANDI - Direct
 import torch
 import torch.nn as nn
 import torch.nn.functional as F

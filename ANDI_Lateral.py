@@ -1,5 +1,4 @@
-# ANDI - "Arithmetic Normalization / Decorrelated Inertia" 
-# This is version 2 of the algorithm making it more robust
+# ANDI - Lateral
 
 import torch
 import torch.nn as nn
