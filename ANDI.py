@@ -1,4 +1,5 @@
 # ANDI - code is designed such that you can run it directly in Jupyter Notebook.
+# ANDI
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -164,7 +165,7 @@ class ANDI(optim.Optimizer):
        - Convex Slopes (||G||>>1): Preserves ||G|| (SGD behavior).
     """
     def __init__(self, params, lr=0.02, momentum=0.9, nesterov=True):
-        # LR=0.02 matches MUON. 
+        # LR=0.02 matches MUON/SGD. 
         # Because we normalize energy, we can use larger LRs than Adam (1e-3).
         defaults = dict(lr=lr, momentum=momentum, nesterov=nesterov)
         super().__init__(params, defaults)
@@ -192,7 +193,7 @@ class ANDI(optim.Optimizer):
                     rows, cols = g_mat.shape
                     
                     # Only apply Structural Whitening to "Matrices"
-                    # Small vectors (biases) don't need "whitening" (this is not real whitening).
+                    # Small vectors (biases) don't need whitening
                     if rows > 16 and cols > 16:
                         # -------------------------------------------------
                         # Step 1: Prime Mixing (Global Context)
@@ -203,17 +204,16 @@ class ANDI(optim.Optimizer):
                         curr = torch.roll(g_mat, shifts=prime_shift, dims=-1)
                         
                         # -------------------------------------------------
-                        # Step 2: Decorrelation
+                        # Step 2: Arithmetic Whitening (Decorrelation)
                         # -------------------------------------------------
-                        # Calculate Energy of Rows (Filter Magnitude)
+                        # Calculate Norms of Rows (Filter Magnitude)
                         # and Columns (Feature Activation Magnitude).
-                        r_energy = curr.norm(dim=1, keepdim=True) + 1e-8
-                        c_energy = curr.norm(dim=0, keepdim=True) + 1e-8
+                        r_norms  = curr.norm(dim=1, keepdim=True) + 1e-8
+                        c_norms  = curr.norm(dim=0, keepdim=True) + 1e-8
                         
-                        # Normalize by the Arithmetic Mean of energies.
-                        # This balances the matrix: G_new[i,j] roughly <= 0.5
-                        # Stability Guarantee: Denom cannot be 0.
-                        g_white = curr / (r_energy + c_energy)
+                        # Normalize by the Arithmetic Mean of Norms.
+                        # G_new = G / (R_norm + C_norm)
+                        g_white = curr / (r_norms  + c_norms)
                         
                         # Restore structure
                         g_white = torch.roll(g_white, shifts=-prime_shift, dims=-1)
@@ -221,7 +221,7 @@ class ANDI(optim.Optimizer):
                         # -------------------------------------------------
                         # Step 3: Hypotenuse Gain (Energy Restoration)
                         # -------------------------------------------------
-                        # Current Norm is arbitrary (approx 0.5 * sqrt(N)).
+                        # Current Whitened Norm is arbitrary (approx 0.5 * sqrt(N)).
                         # We need to map it back to a "Physical" scale.
                         
                         in_norm = g.norm() + 1e-8
