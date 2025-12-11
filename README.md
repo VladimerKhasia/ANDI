@@ -11,7 +11,7 @@
 
 [![ResearchGate](https://img.shields.io/badge/ResearchGate-View_Paper-00CCBB?style=flat&logo=ResearchGate&logoColor=white)](https://www.researchgate.net/publication/398447768_ANDI_Arithmetic_Normalization_Decorrelated_Inertia)
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.17886314.svg)](https://doi.org/10.5281/zenodo.17886314)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.17902839.svg)](https://doi.org/10.5281/zenodo.17902839)
 
 
 
@@ -69,7 +69,7 @@ If you utilize this code or the concepts presented in **ANDI** for your research
   year         = {2025},
   publisher    = {Zenodo},
   doi          = {10.5281/zenodo.17886314},
-  url          = {https://doi.org/10.5281/zenodo.17886314},
+  url          = {https://doi.org/10.5281/zenodo.17902839},
   note         = {Preprint}
 }
 ```
