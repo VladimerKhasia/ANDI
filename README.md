@@ -38,8 +38,8 @@ Latest version of the paper is `ANDI_v3.pdf`
 
 ### Experiment Manifest
 
-To reproduce the results, run `ANDI.py` or for more convinience turn it into Jupyter Notebook `ANDI.ipynb`. 
-The file `ANDI_longrun.py` tests the ANDI_Direct method against best tuned baselines on longer runs, further confirming the experimental results.
+- To reproduce the results, run `ANDI.py` or for more convenience turn it into Jupyter Notebook `ANDI.ipynb`. 
+- The file `ANDI_longrun.py` tests the ANDI_Direct method against best tuned baselines on longer runs, further confirming the experimental results.
 
 ---
 
