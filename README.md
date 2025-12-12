@@ -9,7 +9,9 @@
   <strong>Implementation of the paper "ANDI: Arithmetic Normalization / Decorrelated Inertia Learning"</strong>
 </p>
 
+<!--
 [![ResearchGate](https://img.shields.io/badge/ResearchGate-View_Paper-00CCBB?style=flat&logo=ResearchGate&logoColor=white)](https://www.researchgate.net/publication/398447768_ANDI_Arithmetic_Normalization_Decorrelated_Inertia)
+-->
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.17903321.svg)](https://doi.org/10.5281/zenodo.17903321)
 
@@ -75,6 +77,7 @@ If you utilize this code or the concepts presented in **ANDI** for your research
 }
 ```
 
+<!--
 ```bibtex
 @misc{khasia2025andi,
   author       = {Khasia, Vladimer},
@@ -86,6 +89,7 @@ If you utilize this code or the concepts presented in **ANDI** for your research
   note         = {Preprint}
 }
 ```
+-->
 
 <!--
 ```bibtex
@@ -97,6 +101,7 @@ If you utilize this code or the concepts presented in **ANDI** for your research
 }
 ```
 -->
+
 
 
 
