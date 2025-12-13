@@ -13,7 +13,7 @@
 [![ResearchGate](https://img.shields.io/badge/ResearchGate-View_Paper-00CCBB?style=flat&logo=ResearchGate&logoColor=white)](https://www.researchgate.net/publication/398447768_ANDI_Arithmetic_Normalization_Decorrelated_Inertia)
 -->
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.17922852.svg)](https://doi.org/10.5281/zenodo.17922852)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.17923146.svg)](https://doi.org/10.5281/zenodo.17923146)
 
 
 
@@ -24,7 +24,7 @@ wise adaptive methods (e.g., AdamW), which ignore parameter correlations, and hi
 tural methods (e.g., K-FAC, Muon), which enforce geometric constraints but suffer from super-linear
 computational complexity. We introduce the Adaptive Norm-Distribution Interface (ANDI),
 a first-order optimizer that bridges this gap via structured preconditioning. ANDI applies an element-
-wise whitening transformation derived from the additive equilibration of row and column norms,
+wise equilibration transformation derived from the additive equilibration of row and column norms,
 effectively approximating matrix balancing without iterative solvers or singular value decomposi-
 tion. We prove that ANDI strictly maintains descent directions and provides an implicit trust region
 bounded by the gradient energy. Empirically, ANDI matches the convergence of spectral methods on
@@ -68,8 +68,8 @@ If you utilize this code or the concepts presented in **ANDI** for your research
   title        = {ANDI: Adaptive Norm-Distribution Interface},
   year         = {2025},
   publisher    = {Zenodo},
-  doi          = {10.5281/zenodo.17922852},
-  url          = {https://doi.org/10.5281/zenodo.17922852},
+  doi          = {10.5281/zenodo.17923146},
+  url          = {https://doi.org/10.5281/zenodo.17923146},
   note         = {Preprint}
 }
 ```
