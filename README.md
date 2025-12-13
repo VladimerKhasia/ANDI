@@ -1,47 +1,44 @@
 ﻿<div align="center">
 
-# ANDI: Arithmetic Normalization / Decorrelated Inertia Learning
+# ANDI: Adaptive Norm-Distribution Interface
 
 
 </div>
 
 <p align="center">
-  <strong>Implementation of the paper "ANDI: Arithmetic Normalization / Decorrelated Inertia Learning"</strong>
+  <strong>Implementation of the paper "ANDI: Adaptive Norm-Distribution Interface"</strong>
 </p>
 
 <!--
 [![ResearchGate](https://img.shields.io/badge/ResearchGate-View_Paper-00CCBB?style=flat&logo=ResearchGate&logoColor=white)](https://www.researchgate.net/publication/398447768_ANDI_Arithmetic_Normalization_Decorrelated_Inertia)
 -->
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.17903321.svg)](https://doi.org/10.5281/zenodo.17903321)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.17922852.svg)](https://doi.org/10.5281/zenodo.17922852)
 
 
 
 ## Abstract
 
-Deep learning optimization typically necessitates a trade-off between memory efficiency (first-
-order methods like SGD/AdamW) and convergence speed (second-order structural methods like
-K-FAC/Shampoo). While structural optimizers offer superior generalization by capturing parameter
-correlations, they incur prohibitive O(N 3) compute costs or significant memory overheads. We
-introduce ANDI (Arithmetic Normalization / Decorrelated Inertia), a first-order optimizer that
-approximates structural preconditioning in linear O(N ) time with O(1) additional memory overhead.
-ANDI achieves this via three mechanisms: (1) Prime Topology Mixing, formally a fixed permutation
-operator designed to disrupt local grid correlations; (2) One-Shot Arithmetic Equilibration, a linear-
-time approximation of Sinkhorn-Knopp matrix balancing that stabilizes feature variance; and (3)
-Hypotenuse Energy Regularization, a smooth, differentiable gradient scaling mechanism that enforces
-a lower bound on update energy to navigate saddle points. We present two variants: ANDI-
-Direct (Self-Equilibration) and ANDI-Lateral (Lateral Inhibition). Empirical results across MLPs,
-CNNs, and Transformers (NanoGPT) demonstrate that ANDI matches the convergence trajectory
-of adaptive methods while maintaining the memory footprint of standard SGD. 
+The optimization of deep neural networks is currently dominated by two paradigms: coordinate-
+wise adaptive methods (e.g., AdamW), which ignore parameter correlations, and higher-order struc-
+tural methods (e.g., K-FAC, Muon), which enforce geometric constraints but suffer from super-linear
+computational complexity. We introduce the Adaptive Norm-Distribution Interface (ANDI),
+a first-order optimizer that bridges this gap via structured preconditioning. ANDI applies an element-
+wise whitening transformation derived from the additive equilibration of row and column norms,
+effectively approximating matrix balancing without iterative solvers or singular value decomposi-
+tion. We prove that ANDI strictly maintains descent directions and provides an implicit trust region
+bounded by the gradient energy. Empirically, ANDI matches the convergence of spectral methods on
+ResNet-9 (CIFAR-10) while maintaining the O(N ) computational profile of AdamW. Furthermore,
+on Transformer-based causal language modeling (NanoGPT), ANDI outperforms both diagonal and
+spectral baselines, suggesting that additive norm-equilibration serves as a superior inductive bias for attention-based architectures.
 
 ---
 
-Latest version of the paper is `ANDI_v3.pdf`
+Latest version of the paper is `ANDI_v4.pdf`
 
 ### Experiment Manifest
 
-- To reproduce the results, run `ANDI.py` or for more convenience turn it into Jupyter Notebook `ANDI.ipynb`. 
-- The file `ANDI_longrun.py` tests the ANDI_Direct method against best tuned baselines on longer runs, further confirming the experimental results.
+To reproduce the results, run `ANDI.py` or for more convenience turn it into Jupyter Notebook `ANDI.ipynb`. 
 
 ---
 
@@ -50,7 +47,7 @@ Latest version of the paper is `ANDI_v3.pdf`
 1. For quick experimentation with Jupyter Notebook
 
 ```bash
-pip install torch torchvision numpy matplotlib requests
+pip install torch torchvision matplotlib numpy requests
 ```
 2. Or clone the repository to your local machine and install the required dependencies using pip:
 
@@ -68,11 +65,11 @@ If you utilize this code or the concepts presented in **ANDI** for your research
 ```bibtex
 @misc{khasia2025andi_zenodo,
   author       = {Khasia, Vladimer},
-  title        = {ANDI: Arithmetic Normalization / Decorrelated Inertia},
+  title        = {ANDI: Adaptive Norm-Distribution Interface},
   year         = {2025},
   publisher    = {Zenodo},
-  doi          = {10.5281/zenodo.17886314},
-  url          = {https://doi.org/10.5281/zenodo.17903321},
+  doi          = {10.5281/zenodo.17922852},
+  url          = {https://doi.org/10.5281/zenodo.17922852},
   note         = {Preprint}
 }
 ```
