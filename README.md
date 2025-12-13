@@ -34,8 +34,6 @@ spectral baselines, suggesting that additive norm-equilibration serves as a supe
 
 ---
 
-Latest version of the paper is `ANDI_v4.pdf`
-
 ### Experiment Manifest
 
 To reproduce the results, run `ANDI.py` or for more convenience turn it into Jupyter Notebook `ANDI.ipynb`. 
