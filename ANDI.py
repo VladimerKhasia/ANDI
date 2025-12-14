@@ -1,4 +1,4 @@
-#Complete Benchmark: ANDI 
+#Complete Benchmark: ANDI
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -181,11 +181,11 @@ class NanoGPT(nn.Module):
         return logits, loss
 
 def get_loaders(task):
-    if task == "SADDLE":
+    if task == "AUTOENCODER":
         tf = transforms.Compose([transforms.ToTensor()])
         ds = torchvision.datasets.FashionMNIST(root=DATA_DIR, train=True, download=True, transform=tf)
         return torch.utils.data.DataLoader(ds, batch_size=128, shuffle=True), None
-    elif task == "CIFAR":
+    elif task == "RESNET":
         tf = transforms.Compose([transforms.RandomCrop(32,4), transforms.RandomHorizontalFlip(), transforms.ToTensor(), transforms.Normalize((0.49,0.48,0.44),(0.2,0.19,0.2))])
         ds = torchvision.datasets.CIFAR10(root=DATA_DIR, train=True, download=True, transform=tf)
         return torch.utils.data.DataLoader(ds, batch_size=128, shuffle=True), None
@@ -237,7 +237,7 @@ def train_engine(task_name, model_fn, optimizer_cls, opt_kwargs, seeds):
                 try: batch = next(iter_loader)
                 except: iter_loader = iter(loader); batch = next(iter_loader)
                 x = batch[0].to(DEVICE)
-                if task_name == "SADDLE": loss = F.mse_loss(model(x), x.view(x.size(0), -1))
+                if task_name == "AUTOENCODER": loss = F.mse_loss(model(x), x.view(x.size(0), -1))
                 else: loss = F.cross_entropy(model(x), batch[1].to(DEVICE))
 
             opt.zero_grad(); loss.backward(); opt.step()
@@ -263,7 +263,7 @@ def search_lr(task, model_fn, opt_cls, space, name):
 # ==========================================
 
 def run_experiment():
-    tasks = ["SADDLE", "CIFAR", "GPT"]
+    tasks = ["AUTOENCODER", "RESNET", "GPT"]
     results = {}
 
     search_space = [0.2, 0.1, 0.05, 0.02, 0.01, 0.005]
@@ -271,8 +271,8 @@ def run_experiment():
     for task in tasks:
         print(f"\n--- {task} ---")
         results[task] = {}
-        if task == "SADDLE": m = DeepAutoencoder
-        elif task == "CIFAR": m = ResNet9
+        if task == "AUTOENCODER": m = DeepAutoencoder
+        elif task == "RESNET": m = ResNet9
         elif task == "GPT": m = NanoGPT
 
         results[task]["AdamW"] = train_engine(task, m, optim.AdamW, {"lr": 3e-4 if task=="GPT" else 1e-3}, SEEDS)
@@ -298,7 +298,7 @@ def run_experiment():
             all_curves = [results[task][k] for k in results[task].keys()]
             flat = [v for curve in all_curves for v in curve[1:] if not np.isnan(v)]
             if flat: ax.set_ylim(min(flat)*0.95, max(flat)*1.05)
-        elif task == "SADDLE":
+        elif task == "AUTOENCODER":
             ax.set_yscale("log")
 
         ax.set_xlabel("Steps")
