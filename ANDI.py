@@ -1,4 +1,4 @@
-#Complete Benchmark: ANDI
+# Complete Benchmark: ANDI (Improved with Train/Val Split)
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -183,12 +183,30 @@ class NanoGPT(nn.Module):
 def get_loaders(task):
     if task == "AUTOENCODER":
         tf = transforms.Compose([transforms.ToTensor()])
-        ds = torchvision.datasets.FashionMNIST(root=DATA_DIR, train=True, download=True, transform=tf)
-        return torch.utils.data.DataLoader(ds, batch_size=128, shuffle=True), None
+        train_ds = torchvision.datasets.FashionMNIST(root=DATA_DIR, train=True, download=True, transform=tf)
+        val_ds = torchvision.datasets.FashionMNIST(root=DATA_DIR, train=False, download=True, transform=tf)
+        return (torch.utils.data.DataLoader(train_ds, batch_size=BATCH_SIZE, shuffle=True),
+                torch.utils.data.DataLoader(val_ds, batch_size=BATCH_SIZE, shuffle=False))
+        
     elif task == "RESNET":
-        tf = transforms.Compose([transforms.RandomCrop(32,4), transforms.RandomHorizontalFlip(), transforms.ToTensor(), transforms.Normalize((0.49,0.48,0.44),(0.2,0.19,0.2))])
-        ds = torchvision.datasets.CIFAR10(root=DATA_DIR, train=True, download=True, transform=tf)
-        return torch.utils.data.DataLoader(ds, batch_size=128, shuffle=True), None
+        # Augmentation for Training
+        train_tf = transforms.Compose([
+            transforms.RandomCrop(32,4), 
+            transforms.RandomHorizontalFlip(), 
+            transforms.ToTensor(), 
+            transforms.Normalize((0.49,0.48,0.44),(0.2,0.19,0.2))
+        ])
+        # Clean for Validation
+        val_tf = transforms.Compose([
+            transforms.ToTensor(), 
+            transforms.Normalize((0.49,0.48,0.44),(0.2,0.19,0.2))
+        ])
+        
+        train_ds = torchvision.datasets.CIFAR10(root=DATA_DIR, train=True, download=True, transform=train_tf)
+        val_ds = torchvision.datasets.CIFAR10(root=DATA_DIR, train=False, download=True, transform=val_tf)
+        return (torch.utils.data.DataLoader(train_ds, batch_size=BATCH_SIZE, shuffle=True),
+                torch.utils.data.DataLoader(val_ds, batch_size=BATCH_SIZE, shuffle=False))
+                
     elif task == "GPT":
         return None, None
 
@@ -197,8 +215,10 @@ def get_loaders(task):
 # ==========================================
 
 def train_engine(task_name, model_fn, optimizer_cls, opt_kwargs, seeds):
-    losses_matrix = []
+    train_losses_matrix = []
+    val_losses_matrix = []
 
+    # Prepare Data
     if task_name == "GPT":
         path = os.path.join(DATA_DIR, 'ts.txt')
         if not os.path.exists(path):
@@ -210,28 +230,46 @@ def train_engine(task_name, model_fn, optimizer_cls, opt_kwargs, seeds):
                 with open(path, 'w') as f: f.write("dummy " * 10000)
 
         text = open(path, 'r').read(); chars = sorted(list(set(text))); stoi = {c:i for i,c in enumerate(chars)}
-        data = torch.tensor([stoi[c] for c in text], dtype=torch.long)
+        full_data = torch.tensor([stoi[c] for c in text], dtype=torch.long)
         vocab_size = len(chars)
-        def get_batch():
-            ix = torch.randint(len(data) - 64, (BATCH_SIZE,))
-            x = torch.stack([data[i:i+64] for i in ix])
-            y = torch.stack([data[i+1:i+64+1] for i in ix])
+        
+        # SPLIT DATA (90% Train, 10% Val)
+        n = int(0.9 * len(full_data))
+        train_data = full_data[:n]
+        val_data = full_data[n:]
+        
+        def get_batch(split_data):
+            ix = torch.randint(len(split_data) - 64, (BATCH_SIZE,))
+            x = torch.stack([split_data[i:i+64] for i in ix])
+            y = torch.stack([split_data[i+1:i+64+1] for i in ix])
             return x.to(DEVICE), y.to(DEVICE)
-        loader = None; gpt_loader = get_batch
+            
+        loader = None
+        gpt_get_train = lambda: get_batch(train_data)
+        gpt_get_val = lambda: get_batch(val_data)
     else:
-        loader, _ = get_loaders(task_name)
-        vocab_size = 0; gpt_loader = None
+        loader, val_loader = get_loaders(task_name)
+        vocab_size = 0
+        gpt_get_train = None
+        gpt_get_val = None
 
     for seed in seeds:
         seed_everything(seed)
         model = model_fn(vocab_size).to(DEVICE) if task_name == "GPT" else model_fn().to(DEVICE)
         opt = optimizer_cls(model.parameters(), **opt_kwargs)
-        seed_losses = []
-        if task_name != "GPT": iter_loader = iter(loader)
+        
+        seed_train_losses = []
+        seed_val_losses = []
+        
+        if task_name != "GPT": 
+            iter_loader = iter(loader)
+            iter_val_loader = iter(val_loader)
 
+        model.train()
         for i in range(TRAIN_STEPS):
+            # --- TRAINING STEP ---
             if task_name == "GPT":
-                x, y = gpt_loader()
+                x, y = gpt_get_train()
                 _, loss = model(x, y)
             else:
                 try: batch = next(iter_loader)
@@ -241,21 +279,55 @@ def train_engine(task_name, model_fn, optimizer_cls, opt_kwargs, seeds):
                 else: loss = F.cross_entropy(model(x), batch[1].to(DEVICE))
 
             opt.zero_grad(); loss.backward(); opt.step()
-            if i % EVAL_INTERVAL == 0: seed_losses.append(loss.item())
-        losses_matrix.append(seed_losses)
-    return np.mean(losses_matrix, axis=0)
+            
+            # --- EVALUATION STEP ---
+            if i % EVAL_INTERVAL == 0: 
+                seed_train_losses.append(loss.item())
+                
+                model.eval() # Switch to eval mode (disable dropout/batchnorm updates)
+                with torch.no_grad(): # No gradient calculation for validation
+                    val_loss = 0.0
+                    
+                    if task_name == "GPT":
+                        vx, vy = gpt_get_val()
+                        _, vloss_t = model(vx, vy)
+                        val_loss = vloss_t.item()
+                    else:
+                        # Grab a batch from validation loader
+                        try: vbatch = next(iter_val_loader)
+                        except: iter_val_loader = iter(val_loader); vbatch = next(iter_val_loader)
+                        
+                        vx = vbatch[0].to(DEVICE)
+                        if task_name == "AUTOENCODER": 
+                            val_loss = F.mse_loss(model(vx), vx.view(vx.size(0), -1)).item()
+                        else: 
+                            val_loss = F.cross_entropy(model(vx), vbatch[1].to(DEVICE)).item()
+                    
+                    seed_val_losses.append(val_loss)
+                model.train() # Switch back to train mode
+
+        train_losses_matrix.append(seed_train_losses)
+        val_losses_matrix.append(seed_val_losses)
+        
+    return np.mean(train_losses_matrix, axis=0), np.mean(val_losses_matrix, axis=0)
 
 def search_lr(task, model_fn, opt_cls, space, name):
     print(f" > Search {name} {space}...")
-    best_loss = float('inf'); best_curve = None; best_lr = space[0]
+    best_loss = float('inf')
+    best_curves = (None, None) # (train, val)
+    best_lr = space[0]
 
     for lr in space:
-        curve = train_engine(task, model_fn, opt_cls, {"lr": lr}, [SEEDS[0]])
-        final_val = curve[-1]
+        train_curve, val_curve = train_engine(task, model_fn, opt_cls, {"lr": lr}, [SEEDS[0]])
+        
+        final_val = train_curve[-1]
         if not np.isnan(final_val) and final_val < best_loss:
-            best_loss = final_val; best_curve = curve; best_lr = lr
+            best_loss = final_val
+            best_curves = (train_curve, val_curve)
+            best_lr = lr
 
     print(f"   * Best {name}: {best_lr}")
+    # Run full seed set with best found LR
     return train_engine(task, model_fn, opt_cls, {"lr": best_lr}, SEEDS)
 
 # ==========================================
@@ -264,6 +336,7 @@ def search_lr(task, model_fn, opt_cls, space, name):
 
 def run_experiment():
     tasks = ["AUTOENCODER", "RESNET", "GPT"]
+    # Dictionary structure: results[task][optimizer] = (train_curve, val_curve)
     results = {}
 
     search_space = [0.2, 0.1, 0.05, 0.02, 0.01, 0.005]
@@ -275,38 +348,53 @@ def run_experiment():
         elif task == "RESNET": m = ResNet9
         elif task == "GPT": m = NanoGPT
 
+        # Get results (Tuple: train, val)
         results[task]["AdamW"] = train_engine(task, m, optim.AdamW, {"lr": 3e-4 if task=="GPT" else 1e-3}, SEEDS)
         results[task]["Muon"] = train_engine(task, m, Muon, {"lr": 0.02 if task=="GPT" else 0.05}, SEEDS)
-
         results[task]["ANDI"] = search_lr(task, m, ANDI, search_space, "ANDI")
 
-    # Plotting
-    fig, axes = plt.subplots(1, 3, figsize=(18, 5))
+    # Plotting: 2 Rows (Train, Val) x 3 Columns (Tasks)
+    fig, axes = plt.subplots(2, 3, figsize=(18, 10))
 
     for i, task in enumerate(tasks):
-        ax = axes[i]
-        steps = np.arange(len(results[task]["AdamW"])) * EVAL_INTERVAL
+        # --- Row 0: Training Loss ---
+        ax_train = axes[0, i]
+        steps = np.arange(len(results[task]["AdamW"][0])) * EVAL_INTERVAL
 
-        ax.plot(steps, results[task]["AdamW"], 'b:', label="AdamW", alpha=0.5)
-        ax.plot(steps, results[task]["Muon"], color='orange', linestyle='-.', label="Muon", alpha=0.5)
-        ax.plot(steps, results[task]["ANDI"], 'g-', label="ANDI", linewidth=2)
+        ax_train.plot(steps, results[task]["AdamW"][0], 'b:', label="AdamW", alpha=0.5)
+        ax_train.plot(steps, results[task]["Muon"][0], color='orange', linestyle='-.', label="Muon", alpha=0.5)
+        ax_train.plot(steps, results[task]["ANDI"][0], 'g-', label="ANDI", linewidth=2)
 
-        ax.set_title(f"{task}")
-        ax.grid(True, alpha=0.3)
+        ax_train.set_title(f"{task} (Training Loss)")
+        ax_train.grid(True, alpha=0.3)
+        if i == 0: ax_train.set_ylabel("Train Loss")
+        ax_train.legend()
 
+        # --- Row 1: Evaluation Loss ---
+        ax_val = axes[1, i]
+        
+        ax_val.plot(steps, results[task]["AdamW"][1], 'b:', label="AdamW", alpha=0.5)
+        ax_val.plot(steps, results[task]["Muon"][1], color='orange', linestyle='-.', label="Muon", alpha=0.5)
+        ax_val.plot(steps, results[task]["ANDI"][1], 'g-', label="ANDI", linewidth=2)
+
+        ax_val.set_title(f"{task} (Evaluation Loss)")
+        ax_val.grid(True, alpha=0.3)
+        ax_val.set_xlabel("Steps")
+        if i == 0: ax_val.set_ylabel("Eval Loss")
+
+        # Scaling adjustments
         if task == "GPT":
-            all_curves = [results[task][k] for k in results[task].keys()]
+            all_curves = [results[task][k][0] for k in results[task].keys()]
             flat = [v for curve in all_curves for v in curve[1:] if not np.isnan(v)]
-            if flat: ax.set_ylim(min(flat)*0.95, max(flat)*1.05)
+            if flat: 
+                ax_train.set_ylim(min(flat)*0.95, max(flat)*1.05)
+                ax_val.set_ylim(min(flat)*0.95, max(flat)*1.10) # Eval usually slightly higher
         elif task == "AUTOENCODER":
-            ax.set_yscale("log")
-
-        ax.set_xlabel("Steps")
-        if i == 0: ax.set_ylabel("Loss")
-        ax.legend()
+            ax_train.set_yscale("log")
+            ax_val.set_yscale("log")
 
     plt.tight_layout()
-    plt.savefig("andi_clean_benchmark.png")
+    plt.savefig("andi_train_test_benchmark.png")
     plt.show()
 
 if __name__ == "__main__":
