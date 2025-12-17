@@ -1,5 +1,6 @@
 # Code makes the algorithm correctly applicable not only for full fine-tuning but for LoRA as well.
 # Complete Benchmark: AdamW vs Muon vs ANDI (Unsloth Implementation)
+# Link:  https://docs.unsloth.ai/get-started/fine-tuning-llms-guide/tutorial-how-to-finetune-llama-3-and-use-in-ollama
 
 # import os, re
 # if "COLAB_" not in "".join(os.environ.keys()):
@@ -64,8 +65,6 @@ class ANDI(optim.Optimizer):
                 if p.grad is None: continue
                 g = p.grad
 
-                # CHANGE 3b: Apply Decoupled Weight Decay (Safe for ANDI)
-                # This updates the weights directly and leaves gradients (g) untouched
                 if wd > 0:
                     p.data.mul_(1.0 - lr * wd)
 
@@ -73,12 +72,9 @@ class ANDI(optim.Optimizer):
                 is_large_enough = False
                 if g.ndim > 1:
                     original_shape = g.shape
-                    # Flatten to handle Conv2D or other high-dim tensors consistently
                     g_mat = g.reshape(g.shape[0], -1)
                     rows, cols = g_mat.shape
                     
-                    # LOGIC CHECK: This replaces our hardcoded (> 16) check
-                    # Using >= ensures we catch the edge case of exactly Rank 4, 8, 16 etc.
                     if rows >= min_dim and cols >= min_dim:
                         is_large_enough = True
 
@@ -88,24 +84,21 @@ class ANDI(optim.Optimizer):
                     r_norm = g_mat.norm(dim=1, keepdim=True) + 1e-8
                     c_norm = g_mat.norm(dim=0, keepdim=True) + 1e-8
                     
-                    # 2. Whiten (Equilibrate)
+                    # 2. Equilibrate
                     g_white = g_mat / (r_norm + c_norm)
                     g_white = g_white.view(original_shape)
 
-                    # 3. Energy Scale (Preserve Magnitude, floor at 1.0)
+                    # 3.  Scale (Preserve Magnitude, floor at 1.0)
                     in_norm = g.norm() + 1e-8
                     target = torch.hypot(in_norm, torch.tensor(1.0, device=g.device))
                     
-                    # 4. Apply Target Energy to Whitened Gradient
+                    # 4. Apply 
                     g_final = g_white * (target / (g_white.norm() + 1e-8))
                 else:
-                    # === FALLBACK (Standard Normalized SGD) ===
-                    # Applies to 1D vectors OR small LoRA ranks (< min_dim) or make min_dim smaller.
                     target = torch.hypot(g.norm(), torch.tensor(1.0, device=g.device))
                     g_final = g * (target / (g.norm() + 1e-8))
 
                 # === MOMENTUM & UPDATE STEP ===
-                # This block is identical to our original code
                 state = self.state[p]
                 if 'momentum_buffer' not in state:
                     state['momentum_buffer'] = g_final.clone()
@@ -117,157 +110,6 @@ class ANDI(optim.Optimizer):
                 p.data.add_(update, alpha=-lr)
                 
         return loss
-
-# class ANDI(optim.Optimizer):
-#     """
-#     ANDI (Adaptive Normalized Direction w/ Identity)
-#     Generalized for LoRA and Full Training.
-    
-#     Args:
-#         min_dim (int): The minimum dimension size required to trigger the 
-#                        Self-Equilibration logic. 
-#                        - Set to 17 to match our original code exactly (>16).
-#                        - Set to 4 (default) to enable the method for LoRA adapters.
-#     """
-#     def __init__(self, params, lr=0.02, momentum=0.9, nesterov=True, min_dim=4):
-#         # We add min_dim to defaults so it can be controlled per param_group if needed
-#         defaults = dict(lr=lr, momentum=momentum, nesterov=nesterov, min_dim=min_dim)
-#         super().__init__(params, defaults)
-
-#     @torch.no_grad()
-#     def step(self, closure=None):
-#         loss = None
-#         if closure is not None:
-#             with torch.enable_grad(): loss = closure()
-
-#         for group in self.param_groups:
-#             lr = group['lr']
-#             mom = group['momentum']
-#             nest = group['nesterov']
-#             min_dim = group['min_dim'] # Retrieve the adjustable threshold
-            
-#             for p in group['params']:
-#                 if p.grad is None: continue
-#                 g = p.grad
-
-#                 # Check dimensions to see if we apply ANDI or Fallback
-#                 is_large_enough = False
-#                 if g.ndim > 1:
-#                     original_shape = g.shape
-#                     # Flatten to handle Conv2D or other high-dim tensors consistently
-#                     g_mat = g.reshape(g.shape[0], -1)
-#                     rows, cols = g_mat.shape
-                    
-#                     # LOGIC CHECK: This replaces our hardcoded (> 16) check
-#                     # Using >= ensures we catch the edge case of exactly Rank 4, 8, 16 etc.
-#                     if rows >= min_dim and cols >= min_dim:
-#                         is_large_enough = True
-
-#                 if is_large_enough:
-#                     # === PRIMARY ALGORITHM (Self-Equilibration) ===
-#                     # 1. Calculate Norms
-#                     r_norm = g_mat.norm(dim=1, keepdim=True) + 1e-8
-#                     c_norm = g_mat.norm(dim=0, keepdim=True) + 1e-8
-                    
-#                     # 2. Whiten (Equilibrate)
-#                     g_white = g_mat / (r_norm + c_norm)
-#                     g_white = g_white.view(original_shape)
-
-#                     # 3. Energy Scale (Preserve Magnitude, floor at 1.0)
-#                     in_norm = g.norm() + 1e-8
-#                     target = torch.hypot(in_norm, torch.tensor(1.0, device=g.device))
-                    
-#                     # 4. Apply Target Energy to Whitened Gradient
-#                     g_final = g_white * (target / (g_white.norm() + 1e-8))
-#                 else:
-#                     # === FALLBACK (Standard Normalized SGD) ===
-#                     # Applies to 1D vectors OR small LoRA ranks (< min_dim) or make min_dim smaller.
-#                     target = torch.hypot(g.norm(), torch.tensor(1.0, device=g.device))
-#                     g_final = g * (target / (g.norm() + 1e-8))
-
-#                 # === MOMENTUM & UPDATE STEP ===
-#                 # This block is identical to our original code
-#                 state = self.state[p]
-#                 if 'momentum_buffer' not in state:
-#                     state['momentum_buffer'] = g_final.clone()
-                
-#                 buf = state['momentum_buffer']
-#                 buf.mul_(mom).add_(g_final)
-                
-#                 update = g_final.add(buf, alpha=mom) if nest else buf
-#                 p.data.add_(update, alpha=-lr)
-                
-#         return loss
-
-# class ANDI(optim.Optimizer):
-#     """
-#     ANDI (Adaptive Normalized Direction w/ Identity)
-#     Includes fix for LoRA Rank 16 dimensions.
-#     """
-#     def __init__(self, params, lr=0.02, momentum=0.9, nesterov=True):
-#         defaults = dict(lr=lr, momentum=momentum, nesterov=nesterov)
-#         super().__init__(params, defaults)
-
-#     @torch.no_grad()
-#     def step(self, closure=None):
-#         loss = None
-#         if closure is not None:
-#             with torch.enable_grad(): loss = closure()
-
-#         for group in self.param_groups:
-#             lr = group['lr']
-#             mom = group['momentum']
-#             nest = group['nesterov']
-            
-#             for p in group['params']:
-#                 if p.grad is None: continue
-#                 g = p.grad
-
-#                 # Check dimensions
-#                 if g.ndim > 1:
-#                     original_shape = g.shape
-#                     g_mat = g.reshape(g.shape[0], -1)
-#                     rows, cols = g_mat.shape
-
-#                     # FIX 1: Change > 16 to >= 16 to catch Rank 16 LoRA adapters
-#                     if rows >= 16 and cols >= 16:
-#                         # Self-Equilibration
-#                         r_norm = g_mat.norm(dim=1, keepdim=True) + 1e-8
-#                         c_norm = g_mat.norm(dim=0, keepdim=True) + 1e-8
-                        
-#                         # Broadcasting (R,1) + (1,C) -> (R,C) is correct
-#                         g_white = g_mat / (r_norm + c_norm)
-#                         g_white = g_white.view(original_shape)
-
-#                         # Energy Scale
-#                         in_norm = g.norm() + 1e-8
-#                         # FIX 2: Use g.device instead of global DEVICE
-#                         target = torch.hypot(in_norm, torch.tensor(1.0, device=g.device))
-                        
-#                         # Re-scale the whitened gradient to match the target energy
-#                         g_final = g_white * (target / (g_white.norm() + 1e-8))
-#                     else:
-#                         # Fallback for vectors or small matrices
-#                         target = torch.hypot(g.norm(), torch.tensor(1.0, device=g.device))
-#                         g_final = g * (target / (g.norm() + 1e-8))
-#                 else:
-#                     # Fallback for 1D
-#                     target = torch.hypot(g.norm(), torch.tensor(1.0, device=g.device))
-#                     g_final = g * (target / (g.norm() + 1e-8))
-
-#                 # Momentum Update (PyTorch Nesterov Implementation)
-#                 state = self.state[p]
-#                 if 'momentum_buffer' not in state:
-#                     state['momentum_buffer'] = g_final.clone()
-                
-#                 buf = state['momentum_buffer']
-#                 buf.mul_(mom).add_(g_final)
-                
-#                 update = g_final.add(buf, alpha=mom) if nest else buf
-                
-#                 p.data.add_(update, alpha=-lr)
-                
-#         return loss
 
 class Muon(optim.Optimizer):
     def __init__(self, params, lr=0.02, weight_decay=0.01, momentum=0.95, nesterov=True, ns_steps=5):
@@ -331,9 +173,9 @@ class Muon(optim.Optimizer):
 
 MODEL_NAME = "unsloth/llama-3-8b-bnb-4bit"
 SEED = 3407
-BATCH_SIZE = 6 #2 # Matches Unsloth NB
-GRAD_ACCUM = 2 #4 # Matches Unsloth NB
-MAX_STEPS = 300
+BATCH_SIZE = 6  #2  Unsloth NB
+GRAD_ACCUM = 2  #4  Unsloth NB
+MAX_STEPS = 300 #60 Unsloth NB
 
 # 1. Dataset Prep
 dataset = load_dataset("vicgalle/alpaca-gpt4", split="train")
@@ -366,7 +208,7 @@ def run_experiment(run_name, optimizer_class, lr, custom_wd):
         random_state = SEED,
     )
 
-    # === 3. PRECISION FIX ===
+    # === 3. PRECISION ===
     # We must explicitly cast trainable params to Float32.
     # This replaces the job that "adamw_8bit" usually does internally.
     # Without this, BF16 rounding will kill small Weight Decay updates.
@@ -374,8 +216,7 @@ def run_experiment(run_name, optimizer_class, lr, custom_wd):
         if param.requires_grad:
             param.data = param.data.float()
 
-    # 4. Correct Chat Template (The "Missing Element")
-    # This applies the Llama-3 special tokens correctly
+    # 4. This applies the Llama-3 special tokens correctly
     tokenizer = get_chat_template(tokenizer, chat_template = "llama-3")
 
     def format_func(examples):
@@ -415,7 +256,7 @@ def run_experiment(run_name, optimizer_class, lr, custom_wd):
         args = SFTConfig(
             per_device_train_batch_size = BATCH_SIZE,
             gradient_accumulation_steps = GRAD_ACCUM,
-            warmup_steps = 5, # Unsloth default
+            warmup_steps = 20, # Unsloth default 5 increased to 20 because  default 60 steps were increased to 300
             max_steps = MAX_STEPS,
             learning_rate = lr,
             fp16 = not torch.cuda.is_bf16_supported(),
@@ -423,7 +264,7 @@ def run_experiment(run_name, optimizer_class, lr, custom_wd):
             logging_steps = 1,
             optim = "sgd",
             weight_decay = 0.0,
-            lr_scheduler_type = "linear",
+            lr_scheduler_type = "cosine",  #"linear", # Unsloth default "linear" changed to "cosine" -> to help AdamW
             seed = SEED,
             output_dir = f"outputs_{run_name.replace(' ', '_')}",
             report_to = "none",
@@ -456,7 +297,7 @@ all_eval = []
 
 # Baseline: AdamW (WD=0.01)
 # Note: Unsloth uses 0.001, but we use 0.01 here to match comunity defaults for all optimizers.
-t, e = run_experiment("AdamW (WD=0.01)", None, 2e-4, 0.01)    # community default: PyTorch
+t, e = run_experiment("AdamW (WD=0.01)", None, 1e-3, 0.01)     # community default: PyTorch LR 1e-3 WD 0.01        #unsloth LR default 2e-4 but try 5e-4, 3e-4 -> all worsen results for fp32   
 all_train.extend(t); all_eval.extend(e)
 
 # Muon (WD=0.1)
@@ -464,12 +305,8 @@ t, e = run_experiment("Muon (WD=0.1)", Muon, 5e-3, 0.1)        # community deful
 all_train.extend(t); all_eval.extend(e)
 
 # ANDI (WD=0.1)
-t, e = run_experiment("ANDI (WD=0.1)", ANDI, 5e-2, 0.1)        # we set WD=0.1 just for comparability with MUON as ANDI does not depend much on WD's, schedulers and similar.     
+t, e = run_experiment("ANDI (WD=0.1)", ANDI, 5e-2, 0.1)        # we set WD=0.1 just for comparability with MUON as ANDI does not depend much on WD's etc.     
 all_train.extend(t); all_eval.extend(e)
-
-# # ANDI (WD=0.0)
-# t, e = run_experiment("ANDI (WD=0.0)", ANDI, 2e-3, 0.0)
-# all_train.extend(t); all_eval.extend(e)
 
 # ==========================================
 # 4. PLOTTING
