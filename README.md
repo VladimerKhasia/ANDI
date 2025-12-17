@@ -52,7 +52,7 @@ Note: `ANDI_general.py` includes generalized class for ANDI as it handles LoRA p
 
 ## Installation
 
-1. For quick experimentation with Jupyter Notebook or Google Colab turn `.py` files into `.ipynb`.
+1. For quick experimentation with Jupyter Notebook or Google Colab turn `.py` files into `.ipynb`. Colab is good choice if you do not have GPU.
 
 <!-- ```bash
 # 1. Install Unsloth (and PyTorch)
@@ -71,7 +71,7 @@ pip install torchvision numpy requests pandas matplotlib seaborn datasets # torc
 pip install -r requirements.txt
 # Once the dependencies are installed, you can execute the script using:
 python ANDI.py 
-python ANDI_general.py
+python ANDI_general.py # YOU NEED GPU TO RUN THIS ! ! ! 
 ```
 
 
