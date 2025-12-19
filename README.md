@@ -68,10 +68,11 @@ pip install torchvision numpy requests pandas matplotlib seaborn datasets # torc
 2. Or clone the repository to your local machine and install the required dependencies using pip:
 
 ```bash
+# cd ANDI
 pip install -r requirements.txt
 # Once the dependencies are installed, you can execute the script using:
-python ANDI.py 
-python ANDI_general.py # YOU NEED GPU TO RUN THIS ! ! ! 
+python experiments/ANDI.py 
+python experiments/ANDI_general.py # YOU NEED GPU TO RUN THIS ! ! ! 
 ```
 
 
@@ -115,6 +116,7 @@ If you utilize this code or the concepts presented in **ANDI** for your research
 }
 ```
 -->
+
 
 
 
