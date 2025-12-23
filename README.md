@@ -13,7 +13,7 @@
 [![ResearchGate](https://img.shields.io/badge/ResearchGate-View_Paper-00CCBB?style=flat&logo=ResearchGate&logoColor=white)](https://www.researchgate.net/publication/398447768_ANDI_Arithmetic_Normalization_Decorrelated_Inertia)
 -->
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.17990620.svg)](https://doi.org/10.5281/zenodo.17990620)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.18040686.svg)](https://doi.org/10.5281/zenodo.18040686)
 
 
 
@@ -44,9 +44,7 @@ To reproduce the results, navigate to the `experiments/` folder. The notebooks c
 | Notebook | Objective | Paper Figure |
 | :--- | :--- | :--- |
 | **`ANDI.py`** | **small-scale.** Train Autoencoder ResNet GPT. | **Fig. 1** |
-| **`ANDI_general.py`** | **large-scale.** Fine-tune LLAMA 3 8B 4bit with LoRA. | **Fig. 2** |
-
-Note: `ANDI_general.py` includes generalized class for ANDI as it handles LoRA properly and is equiped with other tools you might need to use.
+| **`ANDI_finetune.py`** | **large-scale.** Fine-tune LLAMA 3 8B 4bit with LoRA. | **Fig. 2** |
 
 ---
 
@@ -72,7 +70,7 @@ pip install torchvision numpy requests pandas matplotlib seaborn datasets # torc
 pip install -r requirements.txt
 # Once the dependencies are installed, you can execute the script using:
 python experiments/ANDI.py 
-python experiments/ANDI_general.py # YOU NEED GPU TO RUN THIS ! ! ! 
+python experiments/ANDI_finetune.py # YOU NEED GPU TO RUN THIS ! ! ! 
 ```
 
 
@@ -86,8 +84,8 @@ If you utilize this code or the concepts presented in **ANDI** for your research
   title        = {ANDI: Adaptive Norm-Distribution Interface},
   year         = {2025},
   publisher    = {Zenodo},
-  doi          = {10.5281/zenodo.17990620},
-  url          = {https://doi.org/10.5281/zenodo.17990620},
+  doi          = {10.5281/zenodo.18040686},
+  url          = {https://doi.org/10.5281/zenodo.18040686},
   note         = {Preprint}
 }
 ```
